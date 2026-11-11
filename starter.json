@@ -1,0 +1,21 @@
+{
+  "name": "Musical Chairs",
+  "genre": "party",
+  "dim": "2D",
+  "mode": "Party",
+  "players": "3–12",
+  "hook": "The music stops. Grab a chair. Shove if you must.",
+  "how": "Walk round the ring of chairs while the music plays. When it stops, dash for a seat: there's one chair fewer than players, so whoever is left standing is out. Bump rivals out of the way; last one sitting wins.",
+  "controls": "Hold any key or the mouse to hurry, click a chair or use WASD to run to it, Space to bump; on touch, hold to hurry, tap a chair, BUMP button",
+  "uses": [
+    ["Host-run rounds", "The host's browser picks when the music stops, hands out every seat (first claim it receives wins, close calls go to whoever was nearer) and decides who is out; if it leaves, the next player takes over."],
+    ["Bots", "Bots stroll, hurry, shove and dash for chairs until enough people join."],
+    ["Live sync", "Everyone hears the music stop at the same moment and sees the same chairs fill."],
+    ["Leaderboard", "Games won."]
+  ],
+  "ideas": [
+    "Add a golden chair that gives a free pass next round",
+    "Make the music speed up every round",
+    "Put it on a pirate ship deck with barrels instead of chairs"
+  ]
+}
