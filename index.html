@@ -25,6 +25,7 @@
   .card ol { margin: 0; padding-left: 24px; font-size: 14px; }
   .card li span { float: right; font-variant-numeric: tabular-nums; opacity: .85; }
   .card li.me { color: #ffe066; font-weight: 700; }
+  .card li.note { list-style: none; margin-left: -16px; opacity: .8; }
   .card p { margin: 6px 0 0; font-size: 14px; opacity: .9; }
   button.go { margin-top: 16px; width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: #ffe066; color: #4a2550; font: 800 17px system-ui, sans-serif; cursor: pointer; }
   #bump { position: fixed; right: max(18px, env(safe-area-inset-right)); bottom: max(26px, env(safe-area-inset-bottom)); width: 88px; height: 88px; border-radius: 50%;
@@ -43,7 +44,7 @@
 <div id="over" hidden><div class="card">
   <h2 id="overTitle"></h2><p id="overLine"></p>
   <h3>This game</h3><ol id="results"></ol>
-  <h3>Most wins</h3><ol id="board"><li>Loading…</li></ol>
+  <h3>Most wins</h3><ol id="board"><li class="note">Loading…</li></ol>
   <button class="go" id="again">Play again</button>
   <p id="next"></p>
 </div></div>
@@ -187,7 +188,8 @@ const laneRing = (n) => chairRing(n) + 1.35;
 const crowdRing = (n) => laneRing(n) + 1.3;
 /** Where chair i of n stands, and which way it faces (out from the middle). The seed turns the ring. */
 function chairPos(i, n, seed) { const a = ((seed % 360) * Math.PI) / 180 + (i / n) * Math.PI * 2, r = chairRing(n); return { x: Math.cos(a) * r, y: Math.sin(a) * r, a }; }
-const crowdSpot = (id, n) => { const a = (hash(id) % 360) * (Math.PI / 180); return { x: Math.cos(a) * crowdRing(n), y: Math.sin(a) * crowdRing(n) }; };
+// Golden-angle steps, so bots "@1", "@2"… (neighbouring hashes) spread round the ring instead of piling up.
+const crowdSpot = (id, n) => { const a = ((hash(id) * 137.508) % 360) * (Math.PI / 180); return { x: Math.cos(a) * crowdRing(n), y: Math.sin(a) * crowdRing(n) }; };
 function mulberry32(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 // ── MUSIC ───────────────────────────────────────────────────────────────────────────
@@ -391,7 +393,7 @@ function botWant(b, id, G, all, t, now) {
     if (now > b.hurryAt) { b.hurry = Math.random() < 0.35; b.hurryAt = now + rnd([600, 2200]); }
     const ahead = all.find((o) => o.id !== id && isIn(G, o.id) && dist(b, o) < 1.1 && aheadOf(b, o));
     b.tc = -1;
-    if (ahead && Math.random() < CONFIG.botBump * 0.01) startBump(b, now, ahead.x - b.x, ahead.y - b.y);
+    if (ahead && Math.random() < CONFIG.botBump * 0.02) startBump(b, now, ahead.x - b.x, ahead.y - b.y);
     return { orbit: true, speed: b.hurry ? CONFIG.hurry : CONFIG.stroll };
   }
   // dash: keep a chair nobody nearer is after; look again a few times a second
@@ -408,7 +410,7 @@ function botWant(b, id, G, all, t, now) {
     b.tc = best;
   }
   if (b.tc < 0) return { go: null };
-  const p = chairPos(b.tc, G.chairs, G.seed), block = all.find((o) => o.id !== id && isIn(G, o.id) && seatOf(G, o.id) < 0 && dist(o, b) < 1.2 && dist(o, p) < dist(b, p));
+  const p = chairPos(b.tc, G.chairs, G.seed), block = all.find((o) => o.id !== id && isIn(G, o.id) && seatOf(G, o.id) < 0 && (dist(o, b) < 1.2 && dist(o, p) < dist(b, p) || dist(o, b) < 0.95)); // in the way, or right alongside in the scramble
   if (block && Math.random() < CONFIG.botBump * 0.05) startBump(b, now, block.x - b.x, block.y - b.y);
   return { go: p, speed: CONFIG.run };
 }
@@ -536,7 +538,7 @@ const fx = [];
 function burst(x, y, colors, n, speed) { for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, s = speed * (0.4 + Math.random()); fx.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.6 + Math.random() * 0.5, col: colors[i % colors.length], r: Math.random() * 6 }); } }
 const notesFx = []; // ♪ floating up from the boombox
 function draw(g, all, t, now, dt) {
-  const target = Math.min(W, H * 0.9) / (2 * (laneRing(g.chairs) + (ATTRACT ? 0.75 : 1.7))); // zoom so the rug fits (the crowd may stand at the edges); it zooms in as chairs go
+  const target = Math.min(W, H * 0.9) / (2 * (laneRing(g.chairs) + (ATTRACT ? 0.75 : 2.1))); // zoom so the rug fits (the crowd may stand at the edges); it zooms in as chairs go
   cam.z += (target - cam.z) * Math.min(1, dt * 3);
   cam.y = -28 / cam.z; // the room sits a touch lower than centre: space for the round line
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -664,11 +666,11 @@ function results(g, t) {
 }
 function showBoard(won) {
   const list = $("board");
-  if (!board) { list.innerHTML = "<li>Leaderboards need a connection.</li>"; return; }
-  list.innerHTML = "<li>Loading…</li>";
+  if (!board) { list.innerHTML = '<li class="note">Leaderboards need a connection.</li>'; return; }
+  list.innerHTML = '<li class="note">Loading…</li>';
   (won ? board.submit(1, "inc").catch(() => null) : Promise.resolve()).then(() => board.top(10)).then(({ entries }) => {
-    list.innerHTML = entries.length ? entries.map((e) => `<li>${esc(e.username || "Player")}<span>${e.score} win${e.score === 1 ? "" : "s"}</span></li>`).join("") : "<li>No wins yet. Be the first.</li>";
-  }).catch(() => { list.innerHTML = "<li>Couldn't load the leaderboard.</li>"; });
+    list.innerHTML = entries.length ? entries.map((e) => `<li>${esc(e.username || "Player")}<span>${e.score} win${e.score === 1 ? "" : "s"}</span></li>`).join("") : '<li class="note">No wins yet. Be the first.</li>';
+  }).catch(() => { list.innerHTML = "<li class=\"note\">Couldn't load the leaderboard.</li>"; });
 }
 /** Keep a color nobody else has: the later sessionId gives way, and the bots' colors count as taken. */
 function fixColor() {
