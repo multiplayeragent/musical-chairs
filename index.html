@@ -510,10 +510,11 @@ function myTick(dt, g, now) {
 function onSit(data, from) {
   const g = game();
   if (!isHost() || !g || !data || data.g !== g.id || data.r !== g.r) return;
-  const p = chairPos(+data.c, g.chairs, g.seed), q = posOf(from, S.entities.players[from] || {});
+  if (!Number.isInteger(data.c) || !Number.isFinite(data.x) || !Number.isFinite(data.y)) return; // a real chair number and a real spot, never "x" or 0.5
+  const p = chairPos(data.c, g.chairs, g.seed), q = posOf(from, S.entities.players[from] || {});
   const d = Math.hypot(+data.x - p.x, +data.y - p.y);
   if (d > CONFIG.reach + 0.2 || (q && Math.hypot(q.x - p.x, q.y - p.y) > CONFIG.reach + CONFIG.slack)) return;
-  claim(g, from, +data.c, d);
+  claim(g, from, data.c, d);
 }
 
 // ── DRAW ────────────────────────────────────────────────────────────────────────────
